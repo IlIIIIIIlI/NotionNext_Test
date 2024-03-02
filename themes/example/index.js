@@ -1,269 +1,158 @@
 'use client'
 
-import CONFIG from './config'
-import { useEffect } from 'react'
-import { Header } from './components/Header'
-import { Nav } from './components/Nav'
-import { Footer } from './components/Footer'
-import { Title } from './components/Title'
-import { SideBar } from './components/SideBar'
-import { BlogListPage } from './components/BlogListPage'
-import { BlogListScroll } from './components/BlogListScroll'
-import { useGlobal } from '@/lib/global'
-import { ArticleLock } from './components/ArticleLock'
-import { ArticleInfo } from './components/ArticleInfo'
-import JumpToTopButton from './components/JumpToTopButton'
+/**
+ * 这是一个空白主题，方便您用作创建新主题时的模板，从而开发出您自己喜欢的主题
+ * 1. 禁用了代码质量检查功能，提高了代码的宽容度；您可以使用标准的html写法
+ * 2. 内容大部分是在此文件中写死，notion数据从props参数中传进来
+ * 3. 您可在此网站找到更多喜欢的组件 https://www.tailwind-kit.com/
+ */
+/* eslint-disable*/
 import NotionPage from '@/components/NotionPage'
-import Comment from '@/components/Comment'
-import ShareBar from '@/components/ShareBar'
-import SearchInput from './components/SearchInput'
-import replaceSearchResult from '@/components/Mark'
-import { isBrowser } from '@/lib/utils'
-import BlogListGroupByDate from './components/BlogListGroupByDate'
-import CategoryItem from './components/CategoryItem'
-import TagItem from './components/TagItem'
+import Header from './components/Header'
+import Footer from './components/Footer'
+import Hero from './components/Hero'
+import Features from './components/Features'
+import FeaturesBlocks from './components/FeaturesBlocks'
+import Testimonials from './components/Testimonials'
+import Newsletter from './components/Newsletter'
+import CommonHead from '@/components/CommonHead'
 import { useRouter } from 'next/router'
-import { Transition } from '@headlessui/react'
-import { Style } from './style'
-import { siteConfig } from '@/lib/config'
+import CONFIG from './config'
+import Loading from '@/components/Loading'
+import { isBrowser } from '@/lib/utils'
+
+// new import
+import Join from './components/Join'
+import FAQ from './components/FAQ'
+import GetStarted from './components/GetStarted'
 
 /**
- * 基础布局框架
- * 1.其它页面都嵌入在LayoutBase中
- * 2.采用左右两侧布局，移动端使用顶部导航栏
- * @returns {JSX.Element}
- * @constructor
+ * 这是个配置文件，可以方便在此统一配置信息
  */
-const LayoutBase = props => {
-  const { children } = props
-  const { onLoading, fullWidth } = useGlobal()
-  const router = useRouter()
-  const { category, tag } = props
-  // 顶部如果是按照分类或标签查看文章列表，列表顶部嵌入一个横幅
-  // 如果是搜索，则列表顶部嵌入 搜索框
-  let slotTop = null
-  if (category) {
-    slotTop = <div className='pb-12'><i className="mr-1 fas fa-folder-open" />{category}</div>
-  } else if (tag) {
-    slotTop = <div className='pb-12'>#{tag}</div>
-  } else if (props.slotTop) {
-    slotTop = props.slotTop
-  } else if (router.route === '/search') {
-    // 嵌入一个搜索框在顶部
-    slotTop = <div className='pb-12'><SearchInput {...props} /></div>
-  }
-
-  // 增加一个状态以触发 Transition 组件的动画
-  //   const [showTransition, setShowTransition] = useState(true)
-  //   useEffect(() => {
-  //     // 当 location 或 children 发生变化时，触发动画
-  //     setShowTransition(false)
-  //     setTimeout(() => setShowTransition(true), 5)
-  //   }, [onLoading])
-
-  return (
-        <div id='theme-example' className={`${siteConfig('FONT_STYLE')} dark:text-gray-300  bg-white dark:bg-black scroll-smooth`} >
-
-            <Style/>
-
-            {/* 页头 */}
-            <Header {...props} />
-
-            {/* 菜单 */}
-            <Nav {...props} />
-
-            {/* 主体 */}
-            <div id='container-inner' className="w-full relative z-10">
-
-                {/* 标题栏 */}
-                {fullWidth ? null : <Title {...props} />}
-
-                <div id='container-wrapper' className={(JSON.parse(siteConfig('LAYOUT_SIDEBAR_REVERSE')) ? 'flex-row-reverse' : '') + 'relative container mx-auto justify-center md:flex items-start py-8 px-2'}>
-
-                    {/* 内容 */}
-                    <div className={`w-full ${fullWidth ? '' : 'max-w-3xl'} xl:px-14 lg:px-4`}>
-                        <Transition
-                            show={!onLoading}
-                            appear={true}
-                            enter="transition ease-in-out duration-700 transform order-first"
-                            enterFrom="opacity-0 translate-y-16"
-                            enterTo="opacity-100"
-                            leave="transition ease-in-out duration-300 transform"
-                            leaveFrom="opacity-100 translate-y-0"
-                            leaveTo="opacity-0 -translate-y-16"
-                            unmount={false}
-                        >
-                            {/* 嵌入模块 */}
-                            {slotTop}
-                            {children}
-                        </Transition>
-                    </div>
-
-                    {/* 侧边栏 */}
-                    {!fullWidth && <SideBar {...props} />}
-
-                </div>
-
-            </div>
-
-            {/* 页脚 */}
-            <Footer {...props} />
-
-            {/* 回顶按钮 */}
-            <div className='fixed right-4 bottom-4 z-10'>
-                <JumpToTopButton />
-            </div>
-        </div>
-  )
-}
+const THEME_CONFIG = { THEME: 'landing' }
 
 /**
- * 首页
- * @param {*} props
- * @returns 此主题首页就是列表
- */
-const LayoutIndex = props => {
-  return <LayoutPostList {...props} />
-}
-
-/**
- * 文章列表
+ * 布局框架
+ * 作为一个基础框架使用，定义了整个主题每个页面必备的顶部导航栏和页脚
+ * 其它页面都嵌入到此框架中使用
  * @param {*} props
  * @returns
  */
-const LayoutPostList = props => {
+const LayoutBase = props => {
+  const { meta, siteInfo, children } = props
+  const router = useRouter()
+  const currentPath = router.asPath // Current URL path.
+  const isZhHomePage = currentPath === '/zh'
+  const i18n = isZhHomePage ? 'zh' : 'en'
+
   return (
-        <>
-            {siteConfig('POST_LIST_STYLE') === 'page' ? <BlogListPage {...props} /> : <BlogListScroll {...props} />}
-        </>
+    <div
+      id="theme-landing"
+      className="overflow-hidden flex flex-col justify-between bg-white"
+    >
+      {/* 网页SEO */}
+      <CommonHead meta={meta} siteInfo={siteInfo} />
+
+      {/* 顶部导航栏 */}
+      <Header i18n={i18n} />
+
+      {/* 内容 */}
+      <div id="content-wrapper">{children}</div>
+
+      {/* 底部页脚 */}
+      <Footer i18n={i18n} />
+    </div>
   )
 }
 
 /**
- * 文章详情页
+ * 首页布局
+ * @param {*} props
+ * @returns
+ */
+const LayoutIndex = props => {
+  const router = useRouter()
+  const currentPath = router.asPath // Current URL path.
+  const isZhHomePage = currentPath === '/zh'
+  const i18n = isZhHomePage ? 'zh' : 'en'
+
+  return (
+    <LayoutBase {...props}>
+      <Hero i18n={i18n} />
+      <Join i18n={i18n} />
+      <Features i18n={i18n} />
+      <FAQ i18n={i18n} />
+      <GetStarted i18n={i18n} />
+    </LayoutBase>
+  )
+}
+
+/**
+ * 文章详情页布局
  * @param {*} props
  * @returns
  */
 const LayoutSlug = props => {
-  const { post, lock, validPassword } = props
+  // 如果 是 /article/[slug] 的文章路径则进行重定向到另一个域名
   const router = useRouter()
-  useEffect(() => {
-    // 404
-    if (!post) {
-      setTimeout(() => {
-        if (isBrowser) {
-          const article = document.getElementById('notion-article')
-          if (!article) {
-            router.push('/404').then(() => {
-              console.warn('找不到页面', router.asPath)
-            })
-          }
-        }
-      }, siteConfig('POST_WAITING_TIME_FOR_404') * 1000)
-    }
-  }, [post])
+  if (
+    JSON.parse(CONFIG.POST_REDIRECT_ENABLE) &&
+    isBrowser &&
+    router.route == '/[prefix]/[slug]'
+  ) {
+    const redirectUrl =
+      CONFIG.POST_REDIRECT_URL + router.asPath.replace('?theme=landing', '')
+    router.push(redirectUrl)
+    return (
+      <div id="theme-landing">
+        <Loading />
+      </div>
+    )
+  }
+
   return (
-        <>
-            {lock
-              ? <ArticleLock validPassword={validPassword} />
-              : <div id="article-wrapper" className="px-2">
-                    <ArticleInfo post={post} />
-                    <NotionPage post={post} />
-                    <ShareBar post={post} />
-                    <Comment frontMatter={post} />
-                </div>}
-        </>
+    <LayoutBase {...props}>
+      <div id="container-inner" className="mx-auto max-w-screen-lg p-12">
+        <NotionPage {...props} />
+      </div>
+    </LayoutBase>
   )
 }
 
-/**
- * 404页
- * @param {*} props
- * @returns
- */
-const Layout404 = (props) => {
-  return <>404 Not found.</>
-}
-
-/**
- * 搜索页
- * @param {*} props
- * @returns
- */
-const LayoutSearch = props => {
-  const { keyword } = props
-  const router = useRouter()
-  useEffect(() => {
-    if (isBrowser) {
-      // 高亮搜索到的结果
-      const container = document.getElementById('posts-wrapper')
-      if (keyword && container) {
-        replaceSearchResult({
-          doms: container,
-          search: keyword,
-          target: {
-            element: 'span',
-            className: 'text-red-500 border-b border-dashed'
-          }
-        })
-      }
-    }
-  }, [router])
-
-  return <LayoutPostList {...props} />
-}
-
-/**
- * 归档列表
- * @param {*} props
- * @returns 按照日期将文章分组排序
- */
-const LayoutArchive = props => {
-  const { archivePosts } = props
-  return (<>
-            <div className="mb-10 pb-20 md:py-12 p-3  min-h-screen w-full">
-                {Object.keys(archivePosts).map(archiveTitle => (
-                    <BlogListGroupByDate key={archiveTitle} archiveTitle={archiveTitle} archivePosts={archivePosts} />
-                ))}
-            </div>
-        </>)
-}
-
-/**
- * 分类列表
- * @param {*} props
- * @returns
- */
-const LayoutCategoryIndex = props => {
-  const { categoryOptions } = props
-  return (
-        <>
-            <div id='category-list' className='duration-200 flex flex-wrap'>
-                {categoryOptions?.map(category => <CategoryItem key={category.name} category={category} />)}
-            </div>
-        </>
-  )
-}
-
-/**
- * 标签列表
- * @param {*} props
- * @returns
- */
-const LayoutTagIndex = (props) => {
-  const { tagOptions } = props
-  return (
-        <>
-            <div id='tags-list' className='duration-200 flex flex-wrap'>
-                {tagOptions.map(tag => <TagItem key={tag.name} tag={tag} />)}
-            </div>
-        </>
-  )
-}
+// 其他布局暂时留空
+const LayoutSearch = props => (
+  <LayoutBase {...props}>
+    <Hero />
+  </LayoutBase>
+)
+const LayoutArchive = props => (
+  <LayoutBase {...props}>
+    <Hero />
+  </LayoutBase>
+)
+const Layout404 = props => (
+  <LayoutBase {...props}>
+    <Hero />
+  </LayoutBase>
+)
+const LayoutCategoryIndex = props => (
+  <LayoutBase {...props}>
+    <Hero />
+  </LayoutBase>
+)
+const LayoutPostList = props => (
+  <LayoutBase {...props}>
+    <Hero />
+  </LayoutBase>
+)
+const LayoutTagIndex = props => (
+  <LayoutBase {...props}>
+    <Hero />
+  </LayoutBase>
+)
 
 export {
-  CONFIG as THEME_CONFIG,
-  LayoutBase,
+  THEME_CONFIG,
   LayoutIndex,
   LayoutSearch,
   LayoutArchive,

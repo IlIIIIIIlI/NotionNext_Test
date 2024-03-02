@@ -12,8 +12,7 @@ import PaginationSimple from './PaginationSimple'
  * @constructor
  */
 const BlogPostListPage = ({ page = 1, posts = [], postCount }) => {
-  const totalPage = Math.ceil(postCount / BLOG.POSTS_PER_PAGE)
-
+    const totalPage = Math.ceil(postCount / parseInt(BLOG.POSTS_PER_PAGE))
   if (!posts || posts.length === 0) {
     return <NavPostListEmpty />
   }
